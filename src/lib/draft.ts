@@ -16,6 +16,8 @@ export type DecisionSnapshot = {
   emailIndex: number
   companyQueue: DuplicateGroup[]
   companyIndex: number
+  /** IDs que o usuário tinha escolhido nessa decisão (para revisar ao voltar) */
+  chosenIds: string[]
 }
 
 export type CleaningDraft = {

@@ -8,8 +8,11 @@ type SwipeDeckProps = {
   index: number
   total: number
   canGoBack: boolean
+  /** Escolha anterior ao voltar — destaca o que foi marcado */
+  resumeIds?: string[] | null
   onKeep: (leadIds: string[]) => void
   onBack: () => void
+  onResumeConsumed?: () => void
 }
 
 export function SwipeDeck({
@@ -18,20 +21,37 @@ export function SwipeDeck({
   index,
   total,
   canGoBack,
+  resumeIds = null,
   onKeep,
   onBack,
+  onResumeConsumed,
 }: SwipeDeckProps) {
   const [multiMode, setMultiMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [reviewing, setReviewing] = useState(false)
 
   useEffect(() => {
     setMultiMode(false)
     setSelected(new Set())
+    setReviewing(false)
   }, [group.id])
+
+  useEffect(() => {
+    if (!resumeIds?.length) return
+    const valid = resumeIds.filter((id) =>
+      group.leads.some((l) => l.id === id),
+    )
+    if (valid.length === 0) return
+    setSelected(new Set(valid))
+    setMultiMode(valid.length > 1)
+    setReviewing(true)
+    onResumeConsumed?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.id, resumeIds])
 
   const reasonLabel =
     group.reason === 'email' ? 'mesmo e-mail' : 'mesma empresa'
-  const showMultiToggle = group.leads.length > 1
+  const showConfirm = multiMode || reviewing
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -42,7 +62,23 @@ export function SwipeDeck({
     })
   }
 
-  function handleMultiNext() {
+  function chooseSingle(id: string) {
+    setSelected(new Set([id]))
+  }
+
+  function handleCardClick(id: string) {
+    if (multiMode) {
+      toggleSelect(id)
+      return
+    }
+    if (reviewing) {
+      chooseSingle(id)
+      return
+    }
+    onKeep([id])
+  }
+
+  function handleConfirm() {
     if (selected.size === 0) return
     onKeep([...selected])
   }
@@ -54,21 +90,33 @@ export function SwipeDeck({
           <p className="progress-pill">
             Decisão {index + 1} de {total}
           </p>
-          {showMultiToggle && (
+          {group.leads.length > 1 && (
             <label className="multi-toggle">
               <input
                 type="checkbox"
                 checked={multiMode}
                 onChange={(e) => {
-                  setMultiMode(e.target.checked)
-                  setSelected(new Set())
+                  const on = e.target.checked
+                  setMultiMode(on)
+                  if (on) {
+                    setReviewing(false)
+                  } else if (selected.size > 1) {
+                    const first = [...selected][0]
+                    setSelected(first ? new Set([first]) : new Set())
+                  }
                 }}
               />
               <span>Selecionar vários</span>
             </label>
           )}
         </div>
-        <h2>{multiMode ? 'Quais leads manter?' : 'Qual lead manter?'}</h2>
+        <h2>
+          {reviewing
+            ? 'Revisar decisão anterior'
+            : multiMode
+              ? 'Quais leads manter?'
+              : 'Qual lead manter?'}
+        </h2>
         <p className="muted">
           Conflito por <strong>{reasonLabel}</strong>
           {group.key ? (
@@ -76,36 +124,48 @@ export function SwipeDeck({
               : <code>{group.key}</code>
             </>
           ) : null}
-          . O mais completo aparece primeiro; grupos maiores vêm antes dos pares.
-          {multiMode
-            ? ' Marque os que deseja manter e avance.'
-            : ' Escolha um; os demais serão removidos.'}
+          .
+          {reviewing
+            ? ' Mostramos o que você tinha marcado. Pode trocar e confirmar.'
+            : multiMode
+              ? ' Marque os que deseja manter e avance.'
+              : ' Um toque mantém e avança. O mais completo vem primeiro.'}
         </p>
       </div>
 
       <div className={`deck-grid deck-count-${Math.min(group.leads.length, 3)}`}>
-        {group.leads.map((lead, i) => (
-          <LeadCard
-            key={lead.id}
-            lead={lead}
-            mapping={mapping}
-            badge={i === 0 ? 'Mais completo' : undefined}
-            selected={multiMode ? selected.has(lead.id) : false}
-            onSelect={
-              multiMode
-                ? () => toggleSelect(lead.id)
-                : () => onKeep([lead.id])
-            }
-            actionLabel={
-              multiMode
-                ? selected.has(lead.id)
-                  ? 'Selecionado'
-                  : 'Selecionar'
-                : 'Manter este'
-            }
-            multiMode={multiMode}
-          />
-        ))}
+        {group.leads.map((lead, i) => {
+          const isSelected = selected.has(lead.id)
+          const badge =
+            reviewing && isSelected
+              ? 'Sua escolha'
+              : !reviewing && i === 0
+                ? 'Mais completo'
+                : undefined
+
+          return (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              mapping={mapping}
+              badge={badge}
+              selected={isSelected}
+              multiMode={showConfirm}
+              onSelect={() => handleCardClick(lead.id)}
+              actionLabel={
+                multiMode
+                  ? isSelected
+                    ? 'Selecionado'
+                    : 'Selecionar'
+                  : reviewing
+                    ? isSelected
+                      ? 'Escolhido'
+                      : 'Trocar para este'
+                    : 'Manter este'
+              }
+            />
+          )
+        })}
       </div>
 
       <div className="step-actions deck-actions">
@@ -114,17 +174,24 @@ export function SwipeDeck({
           className="btn btn-ghost"
           onClick={onBack}
           disabled={!canGoBack}
+          title={
+            canGoBack
+              ? 'Voltar à decisão anterior e revisar a marcação'
+              : 'Não há decisão anterior'
+          }
         >
-          Voltar
+          Decisão anterior
         </button>
-        {multiMode && (
+        {showConfirm && (
           <button
             type="button"
             className="btn btn-primary"
             disabled={selected.size === 0}
-            onClick={handleMultiNext}
+            onClick={handleConfirm}
           >
-            Próximo ({selected.size})
+            {reviewing
+              ? 'Confirmar e avançar'
+              : `Próximo (${selected.size})`}
           </button>
         )}
       </div>

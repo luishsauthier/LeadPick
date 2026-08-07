@@ -81,6 +81,7 @@ export function CleanWizard({
     initialDraft?.undoStack ?? [],
   )
   const [saveNote, setSaveNote] = useState('')
+  const [resumeIds, setResumeIds] = useState<string[] | null>(null)
 
   const currentEmailGroup = emailQueue[emailIndex]
   const currentCompanyGroup = companyQueue[companyIndex]
@@ -141,7 +142,10 @@ export function CleanWizard({
     setUndoStack((stack) => [...stack, snapshot])
   }
 
-  function currentSnapshot(currentStep: 'email' | 'empresa'): DecisionSnapshot {
+  function currentSnapshot(
+    currentStep: 'email' | 'empresa',
+    chosenIds: string[],
+  ): DecisionSnapshot {
     return {
       step: currentStep,
       leads,
@@ -150,6 +154,7 @@ export function CleanWizard({
       emailIndex,
       companyQueue,
       companyIndex,
+      chosenIds,
     }
   }
 
@@ -161,6 +166,7 @@ export function CleanWizard({
     setCompanyQueue(snapshot.companyQueue)
     setCompanyIndex(snapshot.companyIndex)
     setStep(snapshot.step)
+    setResumeIds(snapshot.chosenIds ?? [])
   }
 
   async function handleFile(file: File | undefined) {
@@ -184,6 +190,7 @@ export function CleanWizard({
       setCompanyQueue([])
       setEmailIndex(0)
       setCompanyIndex(0)
+      setResumeIds(null)
       setStep('mapping')
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Falha ao ler o CSV.')
@@ -237,7 +244,8 @@ export function CleanWizard({
   function keepFromEmail(leadIds: string[]) {
     const group = emailQueue[emailIndex]
     if (!group || leadIds.length === 0) return
-    pushSnapshot(currentSnapshot('email'))
+    pushSnapshot(currentSnapshot('email', leadIds))
+    setResumeIds(null)
     const { leads: nextLeads, removed } = applyKeepMany(leads, group, leadIds)
     const nextStats = {
       ...stats,
@@ -257,7 +265,8 @@ export function CleanWizard({
   function keepFromCompany(leadIds: string[]) {
     const group = companyQueue[companyIndex]
     if (!group || leadIds.length === 0) return
-    pushSnapshot(currentSnapshot('empresa'))
+    pushSnapshot(currentSnapshot('empresa', leadIds))
+    setResumeIds(null)
     const { leads: nextLeads, removed } = applyKeepMany(leads, group, leadIds)
     const nextStats = {
       ...stats,
@@ -276,21 +285,11 @@ export function CleanWizard({
   }
 
   function handleDeckBack() {
-    if (undoStack.length > 0) {
-      const stack = [...undoStack]
-      const prev = stack.pop()!
-      setUndoStack(stack)
-      restoreSnapshot(prev)
-      return
-    }
-
-    setLeads(sourceLeads)
-    setStats({ ...emptyStats(), totalIn: sourceLeads.length })
-    setEmailQueue([])
-    setCompanyQueue([])
-    setEmailIndex(0)
-    setCompanyIndex(0)
-    setStep('mapping')
+    if (undoStack.length === 0) return
+    const stack = [...undoStack]
+    const prev = stack.pop()!
+    setUndoStack(stack)
+    restoreSnapshot(prev)
   }
 
   function finish(finalLeads: Lead[], finalStats: CleanStats) {
@@ -330,8 +329,7 @@ export function CleanWizard({
     onCancel()
   }
 
-  const canGoBackDeck =
-    undoStack.length > 0 || step === 'email' || step === 'empresa'
+  const canGoBackDeck = undoStack.length > 0
 
   return (
     <div className="wizard">
@@ -405,8 +403,10 @@ export function CleanWizard({
           index={emailIndex}
           total={emailQueue.length}
           canGoBack={canGoBackDeck}
+          resumeIds={resumeIds}
           onKeep={keepFromEmail}
           onBack={handleDeckBack}
+          onResumeConsumed={() => setResumeIds(null)}
         />
       )}
 
@@ -417,8 +417,10 @@ export function CleanWizard({
           index={companyIndex}
           total={companyQueue.length}
           canGoBack={canGoBackDeck}
+          resumeIds={resumeIds}
           onKeep={keepFromCompany}
           onBack={handleDeckBack}
+          onResumeConsumed={() => setResumeIds(null)}
         />
       )}
 
