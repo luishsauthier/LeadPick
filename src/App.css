@@ -603,6 +603,7 @@ code {
   gap: 1rem;
   margin-top: 1.25rem;
   width: 100%;
+  align-items: stretch;
 }
 
 .deck-count-2 {
@@ -622,6 +623,7 @@ code {
   border: 1px solid var(--line);
   background: linear-gradient(180deg, #fff, var(--ice));
   min-height: 280px;
+  height: 100%;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -637,6 +639,17 @@ code {
   overflow-wrap: anywhere;
   word-break: break-word;
   hyphens: auto;
+}
+
+.lead-card .lead-dl {
+  flex: 1 1 auto;
+}
+
+.lead-card-action,
+.lead-card > .btn {
+  width: 100%;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .lead-dl {
