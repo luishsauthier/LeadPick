@@ -79,7 +79,7 @@ export function LeadCard({
       {onSelect && (
         <button
           type="button"
-          className={`btn ${multiMode && selected ? 'btn-keep' : multiMode ? 'btn-ghost' : 'btn-keep'}`}
+          className={`btn lead-card-action ${multiMode && selected ? 'btn-keep' : multiMode ? 'btn-ghost' : 'btn-keep'}`}
           onClick={onSelect}
         >
           {actionLabel}

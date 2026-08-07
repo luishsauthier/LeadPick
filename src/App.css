@@ -173,6 +173,11 @@ code {
   margin-top: auto;
 }
 
+.lead-card-action {
+  width: 100%;
+  margin-top: auto;
+}
+
 .btn-block {
   width: 100%;
 }
