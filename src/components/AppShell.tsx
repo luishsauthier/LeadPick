@@ -19,8 +19,8 @@ export function AppShell({ children, onLogout, showNav = true }: AppShellProps) 
             className="brand-icon"
             src={logoIcon}
             alt=""
-            width={40}
-            height={40}
+            width={34}
+            height={34}
           />
           <div>
             <p className="brand-name">LeadPick</p>
