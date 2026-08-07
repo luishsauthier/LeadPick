@@ -34,6 +34,7 @@ export function SwipeDeck({
     setMultiMode(false)
     setSelected(new Set())
     setReviewing(false)
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [group.id])
 
   useEffect(() => {
@@ -169,31 +170,37 @@ export function SwipeDeck({
       </div>
 
       <div className="step-actions deck-actions">
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={onBack}
-          disabled={!canGoBack}
-          title={
-            canGoBack
-              ? 'Voltar à decisão anterior e revisar a marcação'
-              : 'Não há decisão anterior'
-          }
-        >
-          Decisão anterior
-        </button>
-        {showConfirm && (
+        <div className="deck-actions-inner">
           <button
             type="button"
-            className="btn btn-primary"
-            disabled={selected.size === 0}
-            onClick={handleConfirm}
+            className="btn btn-ghost"
+            onClick={onBack}
+            disabled={!canGoBack}
+            title={
+              canGoBack
+                ? 'Voltar à decisão anterior e revisar a marcação'
+                : 'Não há decisão anterior'
+            }
           >
-            {reviewing
-              ? 'Confirmar e avançar'
-              : `Próximo (${selected.size})`}
+            Decisão anterior
           </button>
-        )}
+          {showConfirm ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={selected.size === 0}
+              onClick={handleConfirm}
+            >
+              {reviewing
+                ? 'Confirmar e avançar'
+                : `Próximo (${selected.size})`}
+            </button>
+          ) : (
+            <span className="deck-actions-hint muted">
+              Toque em “Manter este” para avançar
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )
