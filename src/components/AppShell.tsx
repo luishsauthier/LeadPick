@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import logoIcon from '../assets/lead_pick_icon.png'
 import { getSessionEmail, logout } from '../lib/auth'
 
 type AppShellProps = {
@@ -14,7 +15,13 @@ export function AppShell({ children, onLogout, showNav = true }: AppShellProps) 
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden />
+          <img
+            className="brand-icon"
+            src={logoIcon}
+            alt=""
+            width={40}
+            height={40}
+          />
           <div>
             <p className="brand-name">LeadPick</p>
             <p className="brand-tag">Limpeza de base comercial</p>

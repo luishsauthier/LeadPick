@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react'
+import logoFull from '../assets/lead_pick.png'
+import logoIcon from '../assets/lead_pick_icon.png'
 import { login } from '../lib/auth'
 
 type LoginPageProps = {
@@ -25,13 +27,26 @@ export function LoginPage({ onSuccess }: LoginPageProps) {
       <div className="login-panel">
         <div className="login-hero">
           <p className="eyebrow">BIMachine · Comercial</p>
-          <h1 className="login-brand">LeadPick</h1>
+          <img
+            className="login-logo"
+            src={logoFull}
+            alt="LeadPick"
+            width={280}
+            height={80}
+          />
           <p className="login-lead">
             Limpe bases de leads com segurança: remova Bads, resolva e-mails e
             empresas duplicadas, e exporte a lista pronta.
           </p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
+          <img
+            className="login-form-icon"
+            src={logoIcon}
+            alt=""
+            width={48}
+            height={48}
+          />
           <h2>Acesso da equipe</h2>
           <label className="field">
             <span>E-mail</span>
