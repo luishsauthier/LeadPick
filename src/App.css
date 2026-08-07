@@ -324,6 +324,52 @@ code {
   margin-bottom: 1.25rem;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.draft-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 122, 92, 0.28);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+}
+
+.draft-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  background: var(--keep-soft);
+  border: 1px solid rgba(31, 122, 92, 0.2);
+}
+
+.draft-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wizard-bar-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.save-note {
+  font-size: 0.78rem;
+  color: var(--keep);
+  font-weight: 600;
+}
+
 .log-list {
   list-style: none;
   margin: 1rem 0 0;
@@ -644,7 +690,8 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .log-row {
+  .log-row,
+  .draft-row {
     flex-direction: column;
     align-items: flex-start;
   }

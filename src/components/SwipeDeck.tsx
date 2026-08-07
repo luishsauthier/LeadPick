@@ -76,7 +76,7 @@ export function SwipeDeck({
               : <code>{group.key}</code>
             </>
           ) : null}
-          . O mais completo aparece primeiro.
+          . O mais completo aparece primeiro; grupos maiores vêm antes dos pares.
           {multiMode
             ? ' Marque os que deseja manter e avance.'
             : ' Escolha um; os demais serão removidos.'}

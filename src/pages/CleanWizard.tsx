@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BadsConfirmModal } from '../components/BadsConfirmModal'
 import { MappingStep } from '../components/MappingStep'
 import { SummaryStep } from '../components/SummaryStep'
@@ -9,6 +9,12 @@ import {
   leadsToCsv,
   parseCsvFile,
 } from '../lib/csv'
+import {
+  clearDraft,
+  saveDraft,
+  type CleaningDraft,
+  type DecisionSnapshot,
+} from '../lib/draft'
 import { appendHistory } from '../lib/history'
 import {
   applyKeepMany,
@@ -26,18 +32,9 @@ import type {
 } from '../types/lead'
 
 type CleanWizardProps = {
+  initialDraft?: CleaningDraft | null
   onCancel: () => void
   onComplete: () => void
-}
-
-type DecisionSnapshot = {
-  step: 'email' | 'empresa'
-  leads: Lead[]
-  stats: CleanStats
-  emailQueue: DuplicateGroup[]
-  emailIndex: number
-  companyQueue: DuplicateGroup[]
-  companyIndex: number
 }
 
 const emptyStats = (): CleanStats => ({
@@ -48,23 +45,42 @@ const emptyStats = (): CleanStats => ({
   removedCompany: 0,
 })
 
-export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
-  const [step, setStep] = useState<WizardStep>('upload')
-  const [fileName, setFileName] = useState('')
-  const [headers, setHeaders] = useState<string[]>([])
-  const [sourceLeads, setSourceLeads] = useState<Lead[]>([])
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [mapping, setMapping] = useState<ColumnMapping>({})
-  const [stats, setStats] = useState<CleanStats>(emptyStats)
-  const [emailQueue, setEmailQueue] = useState<DuplicateGroup[]>([])
-  const [emailIndex, setEmailIndex] = useState(0)
-  const [companyQueue, setCompanyQueue] = useState<DuplicateGroup[]>([])
-  const [companyIndex, setCompanyIndex] = useState(0)
-  const [badCount, setBadCount] = useState(0)
+export function CleanWizard({
+  initialDraft = null,
+  onCancel,
+  onComplete,
+}: CleanWizardProps) {
+  const [step, setStep] = useState<WizardStep>(initialDraft?.step ?? 'upload')
+  const [fileName, setFileName] = useState(initialDraft?.fileName ?? '')
+  const [headers, setHeaders] = useState<string[]>(initialDraft?.headers ?? [])
+  const [sourceLeads, setSourceLeads] = useState<Lead[]>(
+    initialDraft?.sourceLeads ?? [],
+  )
+  const [leads, setLeads] = useState<Lead[]>(initialDraft?.leads ?? [])
+  const [mapping, setMapping] = useState<ColumnMapping>(
+    initialDraft?.mapping ?? {},
+  )
+  const [stats, setStats] = useState<CleanStats>(
+    initialDraft?.stats ?? emptyStats(),
+  )
+  const [emailQueue, setEmailQueue] = useState<DuplicateGroup[]>(
+    initialDraft?.emailQueue ?? [],
+  )
+  const [emailIndex, setEmailIndex] = useState(initialDraft?.emailIndex ?? 0)
+  const [companyQueue, setCompanyQueue] = useState<DuplicateGroup[]>(
+    initialDraft?.companyQueue ?? [],
+  )
+  const [companyIndex, setCompanyIndex] = useState(
+    initialDraft?.companyIndex ?? 0,
+  )
+  const [badCount, setBadCount] = useState(initialDraft?.badCount ?? 0)
   const [parseError, setParseError] = useState('')
   const [dragging, setDragging] = useState(false)
-  const [logged, setLogged] = useState(false)
-  const [undoStack, setUndoStack] = useState<DecisionSnapshot[]>([])
+  const [logged, setLogged] = useState(initialDraft?.logged ?? false)
+  const [undoStack, setUndoStack] = useState<DecisionSnapshot[]>(
+    initialDraft?.undoStack ?? [],
+  )
+  const [saveNote, setSaveNote] = useState('')
 
   const currentEmailGroup = emailQueue[emailIndex]
   const currentCompanyGroup = companyQueue[companyIndex]
@@ -80,6 +96,46 @@ export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
     }
     return labels[step]
   }, [step])
+
+  useEffect(() => {
+    if (step === 'upload' || !fileName) return
+
+    const ok = saveDraft({
+      fileName,
+      headers,
+      sourceLeads,
+      leads,
+      mapping,
+      stats,
+      emailQueue,
+      emailIndex,
+      companyQueue,
+      companyIndex,
+      badCount,
+      logged,
+      undoStack,
+      step,
+    })
+
+    if (ok) {
+      setSaveNote('Progresso salvo neste navegador')
+    }
+  }, [
+    step,
+    fileName,
+    headers,
+    sourceLeads,
+    leads,
+    mapping,
+    stats,
+    emailQueue,
+    emailIndex,
+    companyQueue,
+    companyIndex,
+    badCount,
+    logged,
+    undoStack,
+  ])
 
   function pushSnapshot(snapshot: DecisionSnapshot) {
     setUndoStack((stack) => [...stack, snapshot])
@@ -228,7 +284,6 @@ export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
       return
     }
 
-    // Sem decisões: volta ao mapeamento com a base original
     setLeads(sourceLeads)
     setStats({ ...emptyStats(), totalIn: sourceLeads.length })
     setEmailQueue([])
@@ -265,16 +320,29 @@ export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
     downloadCsv(csv, `${base}-limpo.csv`)
   }
 
+  function handleFinishHome() {
+    clearDraft()
+    onComplete()
+  }
+
+  function handleCancel() {
+    // draft já está autosalvo; só sai
+    onCancel()
+  }
+
   const canGoBackDeck =
     undoStack.length > 0 || step === 'email' || step === 'empresa'
 
   return (
     <div className="wizard">
       <div className="wizard-bar">
-        <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Cancelar
+        <button type="button" className="btn btn-ghost" onClick={handleCancel}>
+          Salvar e sair
         </button>
-        <span className="wizard-step">{progressLabel}</span>
+        <div className="wizard-bar-meta">
+          {saveNote && <span className="save-note">{saveNote}</span>}
+          <span className="wizard-step">{progressLabel}</span>
+        </div>
       </div>
 
       {step === 'upload' && (
@@ -282,8 +350,8 @@ export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
           <div className="section-head">
             <h2>Enviar CSV</h2>
             <p className="muted">
-              Arraste o arquivo ou selecione no computador. O processamento
-              ocorre neste navegador.
+              Arraste o arquivo ou selecione no computador. O progresso é salvo
+              automaticamente neste navegador.
             </p>
           </div>
           <label
@@ -359,7 +427,7 @@ export function CleanWizard({ onCancel, onComplete }: CleanWizardProps) {
           fileName={fileName}
           stats={stats}
           onExport={exportCsv}
-          onFinish={onComplete}
+          onFinish={handleFinishHome}
         />
       )}
     </div>

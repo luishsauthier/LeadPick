@@ -90,6 +90,13 @@ function groupByKey(
       leads: sortByCompleteness(groupLeads, mapping),
     })
   }
+
+  // Maiores primeiro; no fim ficam os pares (2 leads)
+  groups.sort((a, b) => {
+    if (b.leads.length !== a.leads.length) return b.leads.length - a.leads.length
+    return a.key.localeCompare(b.key)
+  })
+
   return groups
 }
 
