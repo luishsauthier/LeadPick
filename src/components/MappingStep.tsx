@@ -1,11 +1,13 @@
 import type { ColumnMapping, SystemField } from '../types/lead'
 
 const FIELDS: { key: SystemField; label: string; required?: boolean }[] = [
-  { key: 'email', label: 'E-mail', required: true },
+  { key: 'email', label: 'Email', required: true },
   { key: 'empresa', label: 'Empresa', required: true },
   { key: 'identificador', label: 'Identificador (Bads)', required: true },
   { key: 'nome', label: 'Nome' },
   { key: 'telefone', label: 'Telefone' },
+  { key: 'celular', label: 'Celular' },
+  { key: 'dataConversao', label: 'Data da Conversão' },
 ]
 
 type MappingStepProps = {
@@ -30,7 +32,8 @@ export function MappingStep({
       <div className="section-head">
         <h2>Mapear colunas</h2>
         <p className="muted">
-          Associe as colunas do CSV aos campos usados nas regras de limpeza.
+          Padrão esperado: Data da Conversão, Email, Identificador, Nome,
+          Empresa, Telefone, Celular. Ajuste se algum header estiver diferente.
         </p>
       </div>
 

@@ -65,11 +65,33 @@ export function downloadCsv(content: string, fileName: string) {
   URL.revokeObjectURL(url)
 }
 
-const EMAIL_HINTS = ['email', 'e-mail', 'mail', 'correio']
-const EMPRESA_HINTS = ['empresa', 'company', 'negocio', 'negócio', 'business', 'firma']
-const ID_HINTS = ['identificador', 'identifier', 'id', 'status']
-const NOME_HINTS = ['nome', 'name', 'contato', 'contact']
-const TEL_HINTS = ['telefone', 'phone', 'celular', 'whatsapp', 'tel']
+/** Colunas padrão do comercial BIMachine */
+const CANONICAL: Record<string, string[]> = {
+  email: ['Email', 'E-mail', 'email'],
+  empresa: ['Empresa', 'empresa'],
+  identificador: ['Identificador', 'identificador'],
+  nome: ['Nome', 'nome'],
+  telefone: ['Telefone', 'telefone'],
+  celular: ['Celular', 'celular'],
+  dataConversao: ['Data da Conversão', 'Data da Conversao', 'data da conversão'],
+}
+
+const EMAIL_HINTS = ['email', 'e-mail', 'mail']
+const EMPRESA_HINTS = ['empresa', 'company', 'negocio', 'negócio']
+const ID_HINTS = ['identificador', 'identifier']
+const NOME_HINTS = ['nome', 'name']
+const TEL_HINTS = ['telefone', 'phone', 'tel']
+const CEL_HINTS = ['celular', 'whatsapp', 'mobile']
+const DATA_HINTS = ['data da conversão', 'data da conversao', 'conversão', 'conversao']
+
+function findExact(headers: string[], candidates: string[]): string | undefined {
+  const byLower = new Map(headers.map((h) => [h.toLowerCase(), h]))
+  for (const c of candidates) {
+    const hit = byLower.get(c.toLowerCase())
+    if (hit) return hit
+  }
+  return undefined
+}
 
 function findHeader(headers: string[], hints: string[]): string | undefined {
   const lower = headers.map((h) => ({ raw: h, n: h.toLowerCase() }))
@@ -86,10 +108,22 @@ function findHeader(headers: string[], hints: string[]): string | undefined {
 
 export function guessMapping(headers: string[]) {
   return {
-    email: findHeader(headers, EMAIL_HINTS),
-    empresa: findHeader(headers, EMPRESA_HINTS),
-    identificador: findHeader(headers, ID_HINTS) ?? findHeader(headers, ['identificador']),
-    nome: findHeader(headers, NOME_HINTS),
-    telefone: findHeader(headers, TEL_HINTS),
+    email:
+      findExact(headers, CANONICAL.email) ?? findHeader(headers, EMAIL_HINTS),
+    empresa:
+      findExact(headers, CANONICAL.empresa) ??
+      findHeader(headers, EMPRESA_HINTS),
+    identificador:
+      findExact(headers, CANONICAL.identificador) ??
+      findHeader(headers, ID_HINTS),
+    nome: findExact(headers, CANONICAL.nome) ?? findHeader(headers, NOME_HINTS),
+    telefone:
+      findExact(headers, CANONICAL.telefone) ??
+      findHeader(headers, TEL_HINTS),
+    celular:
+      findExact(headers, CANONICAL.celular) ?? findHeader(headers, CEL_HINTS),
+    dataConversao:
+      findExact(headers, CANONICAL.dataConversao) ??
+      findHeader(headers, DATA_HINTS),
   }
 }

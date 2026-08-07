@@ -5,7 +5,14 @@ export type Lead = {
   row: LeadRow
 }
 
-export type SystemField = 'email' | 'empresa' | 'identificador' | 'nome' | 'telefone'
+export type SystemField =
+  | 'email'
+  | 'empresa'
+  | 'identificador'
+  | 'nome'
+  | 'telefone'
+  | 'celular'
+  | 'dataConversao'
 
 export type ColumnMapping = Partial<Record<SystemField, string>>
 

@@ -20,6 +20,8 @@ export function LeadCard({
   const email = fieldValue(lead.row, mapping.email) || '—'
   const empresa = fieldValue(lead.row, mapping.empresa) || '—'
   const telefone = fieldValue(lead.row, mapping.telefone) || '—'
+  const celular = fieldValue(lead.row, mapping.celular) || '—'
+  const dataConversao = fieldValue(lead.row, mapping.dataConversao) || '—'
   const identificador = fieldValue(lead.row, mapping.identificador) || '—'
 
   return (
@@ -27,7 +29,7 @@ export function LeadCard({
       <h3>{nome}</h3>
       <dl className="lead-dl">
         <div>
-          <dt>E-mail</dt>
+          <dt>Email</dt>
           <dd>{email}</dd>
         </div>
         <div>
@@ -37,6 +39,14 @@ export function LeadCard({
         <div>
           <dt>Telefone</dt>
           <dd>{telefone}</dd>
+        </div>
+        <div>
+          <dt>Celular</dt>
+          <dd>{celular}</dd>
+        </div>
+        <div>
+          <dt>Data da Conversão</dt>
+          <dd>{dataConversao}</dd>
         </div>
         <div>
           <dt>Identificador</dt>
