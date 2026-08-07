@@ -563,6 +563,13 @@ code {
   flex-wrap: wrap;
 }
 
+.deck-actions-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .deck-actions-hint {
   font-size: 0.85rem;
   font-weight: 600;
