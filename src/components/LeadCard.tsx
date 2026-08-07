@@ -5,6 +5,8 @@ type LeadCardProps = {
   lead: Lead
   mapping: ColumnMapping
   selected?: boolean
+  multiMode?: boolean
+  badge?: string
   onSelect?: () => void
   actionLabel?: string
 }
@@ -13,6 +15,8 @@ export function LeadCard({
   lead,
   mapping,
   selected,
+  multiMode,
+  badge,
   onSelect,
   actionLabel = 'Manter este',
 }: LeadCardProps) {
@@ -25,7 +29,10 @@ export function LeadCard({
   const identificador = fieldValue(lead.row, mapping.identificador) || '—'
 
   return (
-    <article className={`lead-card ${selected ? 'is-selected' : ''}`}>
+    <article
+      className={`lead-card ${selected ? 'is-selected' : ''} ${multiMode ? 'is-multi' : ''}`}
+    >
+      {badge && <span className="lead-badge">{badge}</span>}
       <h3>{nome}</h3>
       <dl className="lead-dl">
         <div>
@@ -54,7 +61,11 @@ export function LeadCard({
         </div>
       </dl>
       {onSelect && (
-        <button type="button" className="btn btn-keep" onClick={onSelect}>
+        <button
+          type="button"
+          className={`btn ${multiMode && selected ? 'btn-keep' : multiMode ? 'btn-ghost' : 'btn-keep'}`}
+          onClick={onSelect}
+        >
           {actionLabel}
         </button>
       )}

@@ -451,13 +451,69 @@ code {
 
 .progress-pill {
   display: inline-flex;
-  margin: 0 0 0.65rem;
+  margin: 0;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
   background: rgba(26, 79, 138, 0.1);
   color: var(--accent);
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.deck-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+
+.multi-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--slate);
+  cursor: pointer;
+  user-select: none;
+}
+
+.multi-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.deck-actions {
+  margin-top: 1.25rem;
+  justify-content: space-between;
+}
+
+.lead-card {
+  position: relative;
+}
+
+.lead-card.is-selected {
+  border-color: rgba(31, 122, 92, 0.55);
+  box-shadow: 0 0 0 2px rgba(31, 122, 92, 0.18);
+  background: linear-gradient(180deg, #fff, var(--keep-soft));
+}
+
+.lead-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--keep);
+  background: var(--keep-soft);
+  border: 1px solid rgba(31, 122, 92, 0.25);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
 }
 
 .deck-grid {
