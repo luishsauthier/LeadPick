@@ -454,7 +454,32 @@ code {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.wizard-bar-left {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.save-note {
+  font-size: 0.78rem;
+  color: var(--keep);
+  font-weight: 600;
+}
+
+.save-note.is-error {
+  color: var(--danger);
+}
+
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
 }
 
 .wizard-step {

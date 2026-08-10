@@ -1,7 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppShell } from './components/AppShell'
 import { isAuthenticated } from './lib/auth'
-import { clearDraft, loadDraft, type CleaningDraft } from './lib/draft'
+import {
+  clearDraft,
+  loadDraft,
+  peekDraftSummary,
+  type CleaningDraft,
+} from './lib/draft'
 import { CleanWizard } from './pages/CleanWizard'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
@@ -16,16 +21,40 @@ export default function App() {
   const [wizardDraft, setWizardDraft] = useState<CleaningDraft | null>(null)
   const [wizardKey, setWizardKey] = useState(0)
 
-  function openNewWizard() {
-    clearDraft()
+  useEffect(() => {
+    // Garante migração de rascunho legado ao abrir o app
+    void loadDraft()
+  }, [])
+
+  async function openNewWizard() {
+    const existing = peekDraftSummary() ?? (await loadDraft())
+    if (existing) {
+      const ok = window.confirm(
+        'Já existe uma limpeza em andamento neste navegador.\n\nSe continuar, esse progresso será descartado. Deseja mesmo começar uma nova limpeza?',
+      )
+      if (!ok) return
+    }
+    await clearDraft()
     setWizardDraft(null)
     setWizardKey((k) => k + 1)
     setScreen('wizard')
   }
 
-  function openResumeWizard() {
-    const draft = loadDraft()
-    if (!draft) return
+  async function openResumeWizard() {
+    const draft = await loadDraft()
+    if (!draft) {
+      window.alert(
+        'Não encontramos progresso salvo neste navegador.\n\nSe você baixou o arquivo de progresso (.json), use “Continuar de arquivo” na home.',
+      )
+      setHomeKey((k) => k + 1)
+      return
+    }
+    setWizardDraft(draft)
+    setWizardKey((k) => k + 1)
+    setScreen('wizard')
+  }
+
+  async function openImportedDraft(draft: CleaningDraft) {
     setWizardDraft(draft)
     setWizardKey((k) => k + 1)
     setScreen('wizard')
@@ -45,11 +74,15 @@ export default function App() {
       {screen === 'home' ? (
         <HomePage
           key={homeKey}
-          onStart={openNewWizard}
-          onResume={openResumeWizard}
+          onStart={() => void openNewWizard()}
+          onResume={() => void openResumeWizard()}
+          onImportDraft={(draft) => void openImportedDraft(draft)}
           onDiscardDraft={() => {
-            clearDraft()
-            setHomeKey((k) => k + 1)
+            const ok = window.confirm(
+              'Descartar a limpeza em andamento? Essa ação não pode ser desfeita.',
+            )
+            if (!ok) return
+            void clearDraft().then(() => setHomeKey((k) => k + 1))
           }}
         />
       ) : (

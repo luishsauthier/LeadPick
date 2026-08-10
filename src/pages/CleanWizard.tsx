@@ -11,6 +11,7 @@ import {
 } from '../lib/csv'
 import {
   clearDraft,
+  downloadDraftBackup,
   saveDraft,
   type CleaningDraft,
   type DecisionSnapshot,
@@ -101,25 +102,38 @@ export function CleanWizard({
   useEffect(() => {
     if (step === 'upload' || !fileName) return
 
-    const ok = saveDraft({
-      fileName,
-      headers,
-      sourceLeads,
-      leads,
-      mapping,
-      stats,
-      emailQueue,
-      emailIndex,
-      companyQueue,
-      companyIndex,
-      badCount,
-      logged,
-      undoStack,
-      step,
-    })
+    let cancelled = false
+    setSaveNote('Salvando progresso…')
 
-    if (ok) {
-      setSaveNote('Progresso salvo neste navegador')
+    void (async () => {
+      const result = await saveDraft({
+        fileName,
+        headers,
+        sourceLeads,
+        leads,
+        mapping,
+        stats,
+        emailQueue,
+        emailIndex,
+        companyQueue,
+        companyIndex,
+        badCount,
+        logged,
+        undoStack,
+        step,
+      })
+      if (cancelled) return
+      if (result.ok) {
+        setSaveNote('Progresso salvo neste navegador')
+      } else {
+        setSaveNote(
+          `Falha ao salvar: ${result.error ?? 'armazene um backup em arquivo.'}`,
+        )
+      }
+    })()
+
+    return () => {
+      cancelled = true
     }
   }, [
     step,
@@ -320,13 +334,31 @@ export function CleanWizard({
   }
 
   function handleFinishHome() {
-    clearDraft()
-    onComplete()
+    void clearDraft().then(() => onComplete())
   }
 
   function handleCancel() {
-    // draft já está autosalvo; só sai
     onCancel()
+  }
+
+  function handleDownloadBackup() {
+    downloadDraftBackup({
+      savedAt: new Date().toISOString(),
+      fileName,
+      headers,
+      sourceLeads,
+      leads,
+      mapping,
+      stats,
+      emailQueue,
+      emailIndex,
+      companyQueue,
+      companyIndex,
+      badCount,
+      logged,
+      undoStack,
+      step,
+    })
   }
 
   const canGoBackDeck = undoStack.length > 0
@@ -334,11 +366,29 @@ export function CleanWizard({
   return (
     <div className="wizard">
       <div className="wizard-bar">
-        <button type="button" className="btn btn-ghost" onClick={handleCancel}>
-          Salvar e sair
-        </button>
+        <div className="wizard-bar-left">
+          <button type="button" className="btn btn-ghost" onClick={handleCancel}>
+            Salvar e sair
+          </button>
+          {step !== 'upload' && fileName && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleDownloadBackup}
+              title="Baixe um arquivo para continuar depois, mesmo em outro computador"
+            >
+              Baixar progresso
+            </button>
+          )}
+        </div>
         <div className="wizard-bar-meta">
-          {saveNote && <span className="save-note">{saveNote}</span>}
+          {saveNote && (
+            <span
+              className={`save-note ${saveNote.startsWith('Falha') ? 'is-error' : ''}`}
+            >
+              {saveNote}
+            </span>
+          )}
           <span className="wizard-step">{progressLabel}</span>
         </div>
       </div>
