@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BadsConfirmModal } from '../components/BadsConfirmModal'
+import { StepTip } from '../components/Guide'
 import { MappingStep } from '../components/MappingStep'
 import { SummaryStep } from '../components/SummaryStep'
 import { SwipeDeck } from '../components/SwipeDeck'
@@ -359,9 +360,48 @@ export function CleanWizard({
       undoStack,
       step,
     })
+    setSaveNote('Arquivo de progresso baixado — guarde para continuar depois')
   }
 
   const canGoBackDeck = undoStack.length > 0
+  const showBackup = step !== 'upload' && Boolean(fileName)
+
+  const stepTip = useMemo(() => {
+    switch (step) {
+      case 'upload':
+        return {
+          title: 'Passo 1 — Enviar a base',
+          text: 'Use o CSV do comercial (Email, Empresa, Identificador, Nome…). Depois vamos mapear as colunas.',
+        }
+      case 'mapping':
+        return {
+          title: 'Passo 2 — Conferir colunas',
+          text: 'Confirme se Email, Empresa e Identificador estão certos. Sem isso as regras de limpeza não funcionam.',
+        }
+      case 'bads':
+        return {
+          title: 'Passo 3 — Bads',
+          text: 'Todos os leads com Identificador começando em [BADS] serão removidos se você confirmar.',
+        }
+      case 'email':
+        return {
+          title: 'Passo 4 — E-mails duplicados',
+          text: 'Escolha qual lead manter (ou vários, com o toggle). Use “Baixar progresso” se for pausar.',
+        }
+      case 'empresa':
+        return {
+          title: 'Passo 5 — Empresas duplicadas',
+          text: 'Mesma lógica do e-mail: deixe só o lead que deve permanecer. Pode voltar à decisão anterior se errar.',
+        }
+      case 'summary':
+        return {
+          title: 'Passo 6 — Finalizar',
+          text: 'Exporte o CSV limpo. Ao voltar ao início, o rascunho desta limpeza é encerrado.',
+        }
+      default:
+        return null
+    }
+  }, [step])
 
   return (
     <div className="wizard">
@@ -370,12 +410,12 @@ export function CleanWizard({
           <button type="button" className="btn btn-ghost" onClick={handleCancel}>
             Salvar e sair
           </button>
-          {step !== 'upload' && fileName && (
+          {showBackup && (
             <button
               type="button"
-              className="btn btn-ghost"
+              className="btn btn-backup"
               onClick={handleDownloadBackup}
-              title="Baixe um arquivo para continuar depois, mesmo em outro computador"
+              title="Baixe um arquivo .json para continuar depois, mesmo em outro computador"
             >
               Baixar progresso
             </button>
@@ -393,13 +433,27 @@ export function CleanWizard({
         </div>
       </div>
 
+      {stepTip && (
+        <StepTip title={stepTip.title} tone={step === 'summary' ? 'info' : 'info'}>
+          {stepTip.text}
+        </StepTip>
+      )}
+
+      {showBackup && (step === 'email' || step === 'empresa') && (
+        <StepTip title="Dica: não perca o trabalho" tone="warn">
+          Vai pausar agora? Clique em <strong>Baixar progresso</strong> antes de
+          fechar o navegador. Depois use <strong>Continuar de arquivo</strong> na
+          home.
+        </StepTip>
+      )}
+
       {step === 'upload' && (
         <div className="step-card">
           <div className="section-head">
             <h2>Enviar CSV</h2>
             <p className="muted">
-              Arraste o arquivo ou selecione no computador. O progresso é salvo
-              automaticamente neste navegador.
+              Arraste o arquivo ou selecione no computador. O progresso passa a
+              ser salvo automaticamente neste navegador.
             </p>
           </div>
           <label

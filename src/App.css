@@ -476,10 +476,73 @@ code {
   color: var(--danger);
 }
 
-.file-btn {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
+.guide-box {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+}
+
+.guide-info {
+  border-left: 4px solid var(--accent);
+}
+
+.guide-warn {
+  border-left: 4px solid #c47b16;
+  background: #fff9f0;
+}
+
+.guide-title {
+  margin: 0 0 0.65rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.guide-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.45rem;
+  color: var(--slate);
+  line-height: 1.45;
+}
+
+.step-tip {
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid var(--line);
+  background: rgba(26, 79, 138, 0.06);
+}
+
+.step-tip strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--navy);
+}
+
+.step-tip p {
+  margin: 0;
+  color: var(--slate);
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+.tip-warn {
+  background: #fff9f0;
+  border-color: rgba(196, 123, 22, 0.35);
+}
+
+.btn-backup {
+  background: #fff;
+  border-color: rgba(26, 79, 138, 0.35);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.btn-backup:hover {
+  background: rgba(26, 79, 138, 0.06);
 }
 
 .wizard-step {

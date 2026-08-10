@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { GuideList } from '../components/Guide'
 import {
   getDraftSummary,
   importDraftFromFile,
@@ -87,9 +88,8 @@ export function HomePage({
         <p className="eyebrow">Operação comercial</p>
         <h1>Limpeza de leads</h1>
         <p className="hero-copy">
-          Envie um CSV, confirme os Bads, escolha qual lead manter em cada
-          conflito e exporte a base limpa. O progresso fica salvo neste
-          navegador — use também “Baixar progresso” para não perder o trabalho.
+          Ferramenta para limpar a base CSV: remover Bads, escolher o lead certo
+          em e-mails/empresas duplicados e exportar a lista final.
         </p>
         <div className="hero-actions">
           {draft && (
@@ -123,8 +123,11 @@ export function HomePage({
       {draft && (
         <section className="draft-panel">
           <div className="section-head">
-            <h2>Em andamento</h2>
-            <p className="muted">Salvo neste navegador (e no IndexedDB)</p>
+            <h2>Você tem uma limpeza em andamento</h2>
+            <p className="muted">
+              Clique em <strong>Continuar</strong> para retomar de onde parou
+              neste navegador.
+            </p>
           </div>
           <div className="draft-row">
             <div>
@@ -150,10 +153,56 @@ export function HomePage({
         </section>
       )}
 
+      <GuideList
+        title="Como usar (passo a passo)"
+        items={[
+          <>
+            Clique em <strong>Nova limpeza</strong> e envie o CSV da base.
+          </>,
+          <>
+            Confirme o mapeamento das colunas (Email, Empresa, Identificador…).
+          </>,
+          <>
+            Confirme a remoção dos <strong>Bads</strong> e resolva os
+            duplicados (e-mail e empresa).
+          </>,
+          <>
+            Antes de sair ou no fim do dia, clique em{' '}
+            <strong>Baixar progresso</strong> — assim você não perde o trabalho.
+          </>,
+          <>
+            Para retomar: use <strong>Continuar limpeza</strong> (mesmo
+            navegador) ou <strong>Continuar de arquivo</strong> (arquivo .json).
+          </>,
+          <>
+            No fim, exporte o CSV limpo.
+          </>,
+        ]}
+      />
+
+      <GuideList
+        tone="warn"
+        title="Importante para não perder o progresso"
+        items={[
+          <>
+            O salvamento automático vale para <strong>este navegador</strong> e
+            este computador.
+          </>,
+          <>
+            Se for pausar (almoço, fim do dia, fim de semana), use{' '}
+            <strong>Baixar progresso</strong>.
+          </>,
+          <>
+            Não clique em <strong>Nova limpeza</strong> se quiser continuar a
+            atual — isso pede confirmação e pode descartar o rascunho.
+          </>,
+        ]}
+      />
+
       <section className="log-panel">
         <div className="section-head">
           <h2>Log recente</h2>
-          <p className="muted">Metadados das últimas limpezas neste navegador</p>
+          <p className="muted">Histórico resumido das limpezas concluídas neste navegador</p>
         </div>
         {history.length === 0 ? (
           <p className="empty-log">Nenhuma limpeza registrada ainda.</p>

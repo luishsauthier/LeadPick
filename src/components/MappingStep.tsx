@@ -33,7 +33,8 @@ export function MappingStep({
         <h2>Mapear colunas</h2>
         <p className="muted">
           Padrão esperado: Data da Conversão, Email, Identificador, Nome,
-          Empresa, Telefone, Celular. Ajuste se algum header estiver diferente.
+          Empresa, Telefone, Celular. Ajuste só se algum header estiver
+          diferente — Email, Empresa e Identificador são obrigatórios.
         </p>
       </div>
 

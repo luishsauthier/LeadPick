@@ -22,6 +22,14 @@ export function SummaryStep({
         <p className="eyebrow success">Concluído</p>
         <h2>Base limpa</h2>
         <p className="muted">Arquivo: {fileName}</p>
+        <p className="muted" style={{ marginTop: '0.5rem' }}>
+          Clique em <strong>Exportar CSV</strong> para baixar a base limpa.
+          Depois use <strong>Voltar ao início</strong>.
+        </p>
+        <p className="muted" style={{ marginTop: '0.5rem' }}>
+          Clique em <strong>Exportar CSV</strong> para baixar a base limpa.
+          Depois use <strong>Voltar ao início</strong>.
+        </p>
       </div>
 
       <div className="summary-grid">
