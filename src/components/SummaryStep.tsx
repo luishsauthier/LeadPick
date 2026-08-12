@@ -14,7 +14,10 @@ export function SummaryStep({
   onFinish,
 }: SummaryStepProps) {
   const removed =
-    stats.removedBads + stats.removedEmail + stats.removedCompany
+    stats.removedBads +
+    (stats.removedDomains ?? 0) +
+    stats.removedEmail +
+    stats.removedCompany
 
   return (
     <div className="step-card">
@@ -22,10 +25,6 @@ export function SummaryStep({
         <p className="eyebrow success">Concluído</p>
         <h2>Base limpa</h2>
         <p className="muted">Arquivo: {fileName}</p>
-        <p className="muted" style={{ marginTop: '0.5rem' }}>
-          Clique em <strong>Exportar CSV</strong> para baixar a base limpa.
-          Depois use <strong>Voltar ao início</strong>.
-        </p>
         <p className="muted" style={{ marginTop: '0.5rem' }}>
           Clique em <strong>Exportar CSV</strong> para baixar a base limpa.
           Depois use <strong>Voltar ao início</strong>.
@@ -48,6 +47,10 @@ export function SummaryStep({
         <div className="summary-stat">
           <span className="label">Bads</span>
           <strong>{stats.removedBads}</strong>
+        </div>
+        <div className="summary-stat">
+          <span className="label">@ domínio</span>
+          <strong>{stats.removedDomains ?? 0}</strong>
         </div>
         <div className="summary-stat">
           <span className="label">E-mail dup.</span>

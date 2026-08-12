@@ -24,6 +24,7 @@ export function appendHistory(
     totalIn: entry.totalIn,
     kept: entry.kept,
     removedBads: entry.removedBads,
+    removedDomains: entry.removedDomains ?? 0,
     removedEmail: entry.removedEmail,
     removedCompany: entry.removedCompany,
   }

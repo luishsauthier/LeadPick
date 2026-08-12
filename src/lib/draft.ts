@@ -40,6 +40,8 @@ export type CleaningDraft = {
   logged: boolean
   undoStack: DecisionSnapshot[]
   step: WizardStep
+  /** Domínios @ marcados para exclusão */
+  excludedDomains?: string[]
 }
 
 export type DraftSummary = {
@@ -53,11 +55,14 @@ export type DraftSummary = {
 export type SaveDraftResult = {
   ok: boolean
   error?: string
+  /** true se o draft ficou só em memória nesta sessão */
+  memoryOnly?: boolean
 }
 
 const STEP_LABEL: Record<WizardStep, string> = {
   upload: 'Upload',
   mapping: 'Colunas',
+  domains: 'Domínios @',
   bads: 'Bads',
   email: 'E-mails duplicados',
   empresa: 'Empresas duplicadas',
@@ -78,7 +83,8 @@ function openDb(): Promise<IDBDatabase> {
       }
     }
     req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error ?? new Error('Falha ao abrir IndexedDB'))
+    req.onerror = () =>
+      reject(req.error ?? new Error('Falha ao abrir IndexedDB'))
   })
 }
 
@@ -91,7 +97,8 @@ function idbGet(): Promise<CleaningDraft | null> {
         req.onsuccess = () => {
           resolve((req.result as CleaningDraft | undefined) ?? null)
         }
-        req.onerror = () => reject(req.error ?? new Error('Falha ao ler rascunho'))
+        req.onerror = () =>
+          reject(req.error ?? new Error('Falha ao ler rascunho'))
         tx.oncomplete = () => db.close()
       }),
   )
@@ -107,8 +114,10 @@ function idbSet(draft: CleaningDraft): Promise<void> {
           db.close()
           resolve()
         }
-        tx.onerror = () => reject(tx.error ?? new Error('Falha ao gravar rascunho'))
-        tx.onabort = () => reject(tx.error ?? new Error('Gravação abortada'))
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Falha ao gravar rascunho'))
+        tx.onabort = () =>
+          reject(tx.error ?? new Error('Gravação abortada'))
       }),
   )
 }
@@ -123,7 +132,8 @@ function idbClear(): Promise<void> {
           db.close()
           resolve()
         }
-        tx.onerror = () => reject(tx.error ?? new Error('Falha ao limpar rascunho'))
+        tx.onerror = () =>
+          reject(tx.error ?? new Error('Falha ao limpar rascunho'))
       }),
   )
 }
@@ -136,11 +146,28 @@ function writeMeta(draft: CleaningDraft) {
     totalIn: draft.stats.totalIn,
     keptSoFar: draft.leads.length,
   }
-  localStorage.setItem(META_KEY, JSON.stringify(meta))
+  try {
+    localStorage.setItem(META_KEY, JSON.stringify(meta))
+  } catch {
+    // meta é opcional; IndexedDB é a fonte da verdade
+  }
 }
 
 function clearMeta() {
-  localStorage.removeItem(META_KEY)
+  try {
+    localStorage.removeItem(META_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+/** Remove rascunhos enormes da versão antiga (localStorage). */
+function purgeLegacyStorage() {
+  try {
+    localStorage.removeItem(LEGACY_KEY)
+  } catch {
+    // ignore
+  }
 }
 
 export function peekDraftSummary(): DraftSummary | null {
@@ -161,6 +188,17 @@ function isValidDraft(value: unknown): value is CleaningDraft {
   return Boolean(d.fileName && d.step && Array.isArray(d.leads))
 }
 
+/**
+ * Undo em disco infla demais (cada snapshot copia a base inteira).
+ * Mantemos undo só em memória na sessão; persistido fica vazio.
+ */
+function compactDraft(draft: CleaningDraft): CleaningDraft {
+  return {
+    ...draft,
+    undoStack: [],
+  }
+}
+
 /** Migra rascunho antigo do localStorage (versão anterior do app). */
 async function migrateLegacyDraft(): Promise<CleaningDraft | null> {
   try {
@@ -168,32 +206,31 @@ async function migrateLegacyDraft(): Promise<CleaningDraft | null> {
     if (!raw) return null
     const parsed = JSON.parse(raw) as CleaningDraft
     if (!isValidDraft(parsed) || parsed.step === 'upload') {
-      localStorage.removeItem(LEGACY_KEY)
+      purgeLegacyStorage()
       return null
     }
-    const full: CleaningDraft = {
+    const full = compactDraft({
       ...parsed,
       savedAt: parsed.savedAt || new Date().toISOString(),
-      undoStack: (parsed.undoStack ?? []).map((s) => ({
-        ...s,
-        chosenIds: s.chosenIds ?? [],
-      })),
-    }
+      undoStack: [],
+    })
     await idbSet(full)
     writeMeta(full)
-    localStorage.removeItem(LEGACY_KEY)
+    purgeLegacyStorage()
     return full
   } catch {
+    purgeLegacyStorage()
     return null
   }
 }
 
 export async function loadDraft(): Promise<CleaningDraft | null> {
+  purgeLegacyStorage()
   try {
     const fromIdb = await idbGet()
     if (fromIdb && isValidDraft(fromIdb) && fromIdb.step !== 'upload') {
       writeMeta(fromIdb)
-      return fromIdb
+      return compactDraft(fromIdb)
     }
     return await migrateLegacyDraft()
   } catch {
@@ -215,14 +252,6 @@ export async function getDraftSummary(): Promise<DraftSummary | null> {
   }
 }
 
-/** Limita undo para não inflar demais o arquivo de progresso. */
-function compactDraft(draft: CleaningDraft): CleaningDraft {
-  return {
-    ...draft,
-    undoStack: (draft.undoStack ?? []).slice(-15),
-  }
-}
-
 export async function saveDraft(
   draft: Omit<CleaningDraft, 'savedAt'>,
 ): Promise<SaveDraftResult> {
@@ -235,33 +264,26 @@ export async function saveDraft(
     savedAt: new Date().toISOString(),
   })
 
+  purgeLegacyStorage()
+
   try {
     await idbSet(full)
     writeMeta(full)
-    // limpa legado para não confundir
-    localStorage.removeItem(LEGACY_KEY)
     return { ok: true }
   } catch (err) {
-    // fallback localStorage (bases pequenas)
-    try {
-      localStorage.setItem(LEGACY_KEY, JSON.stringify(full))
-      writeMeta(full)
-      return { ok: true }
-    } catch (fallbackErr) {
-      const message =
-        fallbackErr instanceof Error
-          ? fallbackErr.message
-          : err instanceof Error
-            ? err.message
-            : 'Armazenamento do navegador indisponível ou cheio.'
-      return { ok: false, error: message }
+    const detail =
+      err instanceof Error ? err.message : 'IndexedDB indisponível neste navegador.'
+    return {
+      ok: false,
+      error: `Não foi possível salvar no navegador (${detail}). Use “Baixar progresso” e guarde o arquivo .json.`,
+      memoryOnly: true,
     }
   }
 }
 
 export async function clearDraft(): Promise<void> {
   clearMeta()
-  localStorage.removeItem(LEGACY_KEY)
+  purgeLegacyStorage()
   try {
     await idbClear()
   } catch {
@@ -272,9 +294,12 @@ export async function clearDraft(): Promise<void> {
 export function downloadDraftBackup(draft: CleaningDraft) {
   const payload = {
     app: 'LeadPick',
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
-    draft: compactDraft(draft),
+    draft: compactDraft({
+      ...draft,
+      savedAt: draft.savedAt || new Date().toISOString(),
+    }),
   }
   const blob = new Blob([JSON.stringify(payload)], {
     type: 'application/json;charset=utf-8',
@@ -288,34 +313,44 @@ export function downloadDraftBackup(draft: CleaningDraft) {
   URL.revokeObjectURL(url)
 }
 
-export async function importDraftFromFile(file: File): Promise<CleaningDraft> {
+export async function importDraftFromFile(file: File): Promise<{
+  draft: CleaningDraft
+  persisted: boolean
+  warning?: string
+}> {
   const text = await file.text()
-  const parsed = JSON.parse(text) as {
-    draft?: CleaningDraft
-  } & CleaningDraft
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error('Arquivo JSON inválido.')
+  }
 
-  const draft = isValidDraft(parsed.draft)
-    ? parsed.draft
-    : isValidDraft(parsed)
-      ? parsed
+  const root = parsed as { draft?: CleaningDraft } & CleaningDraft
+  const draft = isValidDraft(root.draft)
+    ? root.draft
+    : isValidDraft(root)
+      ? root
       : null
 
   if (!draft || draft.step === 'upload') {
     throw new Error('Arquivo de progresso inválido.')
   }
 
-  const full: CleaningDraft = {
+  const full = compactDraft({
     ...draft,
     savedAt: new Date().toISOString(),
-    undoStack: (draft.undoStack ?? []).map((s) => ({
-      ...s,
-      chosenIds: s.chosenIds ?? [],
-    })),
-  }
+    undoStack: [],
+  })
 
   const result = await saveDraft(full)
   if (!result.ok) {
-    throw new Error(result.error ?? 'Não foi possível importar o progresso.')
+    return {
+      draft: full,
+      persisted: false,
+      warning:
+        'Progresso carregado só nesta sessão (navegador sem espaço/IndexedDB). Use “Baixar progresso” com frequência.',
+    }
   }
-  return full
+  return { draft: full, persisted: true }
 }

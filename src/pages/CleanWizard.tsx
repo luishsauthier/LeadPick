@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BadsConfirmModal } from '../components/BadsConfirmModal'
+import { DomainFilterStep } from '../components/DomainFilterStep'
 import { StepTip } from '../components/Guide'
 import { MappingStep } from '../components/MappingStep'
 import { SummaryStep } from '../components/SummaryStep'
@@ -10,6 +11,7 @@ import {
   leadsToCsv,
   parseCsvFile,
 } from '../lib/csv'
+import { SUGGESTED_EXCLUDE_DOMAINS } from '../lib/domains'
 import {
   clearDraft,
   downloadDraftBackup,
@@ -24,6 +26,7 @@ import {
   findCompanyDuplicates,
   findEmailDuplicates,
   removeBads,
+  removeByDomains,
 } from '../lib/rules'
 import type {
   CleanStats,
@@ -43,6 +46,7 @@ const emptyStats = (): CleanStats => ({
   totalIn: 0,
   kept: 0,
   removedBads: 0,
+  removedDomains: 0,
   removedEmail: 0,
   removedCompany: 0,
 })
@@ -84,6 +88,9 @@ export function CleanWizard({
   )
   const [saveNote, setSaveNote] = useState('')
   const [resumeIds, setResumeIds] = useState<string[] | null>(null)
+  const [excludedDomains, setExcludedDomains] = useState<string[]>(
+    initialDraft?.excludedDomains ?? [...SUGGESTED_EXCLUDE_DOMAINS],
+  )
 
   const currentEmailGroup = emailQueue[emailIndex]
   const currentCompanyGroup = companyQueue[companyIndex]
@@ -92,10 +99,11 @@ export function CleanWizard({
     const labels: Record<WizardStep, string> = {
       upload: '1 · Upload',
       mapping: '2 · Colunas',
-      bads: '3 · Bads',
-      email: '4 · E-mails',
-      empresa: '5 · Empresas',
-      summary: '6 · Resumo',
+      domains: '3 · Domínios @',
+      bads: '4 · Bads',
+      email: '5 · E-mails',
+      empresa: '6 · Empresas',
+      summary: '7 · Resumo',
     }
     return labels[step]
   }, [step])
@@ -122,6 +130,7 @@ export function CleanWizard({
         logged,
         undoStack,
         step,
+        excludedDomains,
       })
       if (cancelled) return
       if (result.ok) {
@@ -151,6 +160,7 @@ export function CleanWizard({
     badCount,
     logged,
     undoStack,
+    excludedDomains,
   ])
 
   function pushSnapshot(snapshot: DecisionSnapshot) {
@@ -206,21 +216,51 @@ export function CleanWizard({
       setEmailIndex(0)
       setCompanyIndex(0)
       setResumeIds(null)
+      setExcludedDomains([...SUGGESTED_EXCLUDE_DOMAINS])
       setStep('mapping')
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Falha ao ler o CSV.')
     }
   }
 
-  function goToBadsConfirm() {
-    const count = countBads(leads, mapping)
+  function goToDomains() {
+    setStep('domains')
+  }
+
+  function applyDomainsAndContinue(domains: string[]) {
+    setExcludedDomains(domains)
+    const { kept, removed } = removeByDomains(sourceLeads, mapping, domains)
+    const nextStats = {
+      ...stats,
+      removedDomains: removed,
+      removedBads: 0,
+      removedEmail: 0,
+      removedCompany: 0,
+    }
+    setLeads(kept)
+    setStats(nextStats)
+
+    const count = countBads(kept, mapping)
     setBadCount(count)
     setUndoStack([])
     if (count === 0) {
-      startEmailQueue(leads, { ...stats, removedBads: 0 })
+      startEmailQueue(kept, nextStats)
       return
     }
     setStep('bads')
+  }
+
+  function backToDomains() {
+    setLeads(sourceLeads)
+    setStats((s) => ({
+      ...s,
+      removedDomains: 0,
+      removedBads: 0,
+      removedEmail: 0,
+      removedCompany: 0,
+    }))
+    setUndoStack([])
+    setStep('domains')
   }
 
   function startEmailQueue(nextLeads: Lead[], nextStats: CleanStats) {
@@ -320,6 +360,7 @@ export function CleanWizard({
         totalIn: complete.totalIn,
         kept: complete.kept,
         removedBads: complete.removedBads,
+        removedDomains: complete.removedDomains ?? 0,
         removedEmail: complete.removedEmail,
         removedCompany: complete.removedCompany,
       })
@@ -359,6 +400,7 @@ export function CleanWizard({
       logged,
       undoStack,
       step,
+      excludedDomains,
     })
     setSaveNote('Arquivo de progresso baixado — guarde para continuar depois')
   }
@@ -378,24 +420,29 @@ export function CleanWizard({
           title: 'Passo 2 — Conferir colunas',
           text: 'Confirme se Email, Empresa e Identificador estão certos. Sem isso as regras de limpeza não funcionam.',
         }
+      case 'domains':
+        return {
+          title: 'Passo 3 — Domínios @ para excluir',
+          text: 'Marque gmail, hotmail, temporários etc. que devem sair. Desmarque o que quiser manter e adicione outros se precisar.',
+        }
       case 'bads':
         return {
-          title: 'Passo 3 — Bads',
+          title: 'Passo 4 — Bads',
           text: 'Todos os leads com Identificador começando em [BADS] serão removidos se você confirmar.',
         }
       case 'email':
         return {
-          title: 'Passo 4 — E-mails duplicados',
+          title: 'Passo 5 — E-mails duplicados',
           text: 'Escolha qual lead manter (ou vários, com o toggle). Use “Baixar progresso” se for pausar.',
         }
       case 'empresa':
         return {
-          title: 'Passo 5 — Empresas duplicadas',
+          title: 'Passo 6 — Empresas duplicadas',
           text: 'Mesma lógica do e-mail: deixe só o lead que deve permanecer. Pode voltar à decisão anterior se errar.',
         }
       case 'summary':
         return {
-          title: 'Passo 6 — Finalizar',
+          title: 'Passo 7 — Finalizar',
           text: 'Exporte o CSV limpo. Ao voltar ao início, o rascunho desta limpeza é encerrado.',
         }
       default:
@@ -488,14 +535,25 @@ export function CleanWizard({
           mapping={mapping}
           onChange={setMapping}
           onBack={() => setStep('upload')}
-          onContinue={goToBadsConfirm}
+          onContinue={goToDomains}
+        />
+      )}
+
+      {step === 'domains' && (
+        <DomainFilterStep
+          leads={sourceLeads}
+          mapping={mapping}
+          selectedDomains={excludedDomains}
+          onChange={setExcludedDomains}
+          onBack={() => setStep('mapping')}
+          onContinue={applyDomainsAndContinue}
         />
       )}
 
       {step === 'bads' && (
         <BadsConfirmModal
           count={badCount}
-          onCancel={() => setStep('mapping')}
+          onCancel={backToDomains}
           onConfirm={confirmBads}
         />
       )}

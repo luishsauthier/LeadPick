@@ -1,5 +1,12 @@
 import type { ColumnMapping, DuplicateGroup, Lead } from '../types/lead'
-import { fieldValue, isBadIdentificador, normalizeCompany, normalizeEmail } from './normalize'
+import {
+  emailDomain,
+  fieldValue,
+  isBadIdentificador,
+  normalizeCompany,
+  normalizeEmail,
+} from './normalize'
+import { normalizeDomainInput } from './domains'
 
 export function countBads(leads: Lead[], mapping: ColumnMapping): number {
   const col = mapping.identificador
@@ -18,6 +25,66 @@ export function removeBads(
   let removed = 0
   for (const lead of leads) {
     if (isBadIdentificador(fieldValue(lead.row, col))) {
+      removed += 1
+    } else {
+      kept.push(lead)
+    }
+  }
+  return { kept, removed }
+}
+
+export function countLeadsByDomain(
+  leads: Lead[],
+  mapping: ColumnMapping,
+  domains: string[],
+): Map<string, number> {
+  const set = new Set(domains.map(normalizeDomainInput).filter(Boolean))
+  const counts = new Map<string, number>()
+  for (const d of set) counts.set(d, 0)
+
+  const col = mapping.email
+  if (!col) return counts
+
+  for (const lead of leads) {
+    const domain = emailDomain(fieldValue(lead.row, col))
+    if (!domain || !set.has(domain)) continue
+    counts.set(domain, (counts.get(domain) ?? 0) + 1)
+  }
+  return counts
+}
+
+export function countDomainExclusions(
+  leads: Lead[],
+  mapping: ColumnMapping,
+  domains: string[],
+): number {
+  const set = new Set(domains.map(normalizeDomainInput).filter(Boolean))
+  if (set.size === 0) return 0
+  const col = mapping.email
+  if (!col) return 0
+  let n = 0
+  for (const lead of leads) {
+    const domain = emailDomain(fieldValue(lead.row, col))
+    if (domain && set.has(domain)) n += 1
+  }
+  return n
+}
+
+export function removeByDomains(
+  leads: Lead[],
+  mapping: ColumnMapping,
+  domains: string[],
+): { kept: Lead[]; removed: number } {
+  const set = new Set(domains.map(normalizeDomainInput).filter(Boolean))
+  if (set.size === 0) return { kept: leads, removed: 0 }
+  const col = mapping.email
+  if (!col) return { kept: leads, removed: 0 }
+
+  const kept: Lead[] = []
+  let removed = 0
+  for (const lead of leads) {
+    const domain = emailDomain(fieldValue(lead.row, col))
+    if (domain && set.has(domain)) {
       removed += 1
     } else {
       kept.push(lead)

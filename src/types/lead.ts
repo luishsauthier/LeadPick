@@ -29,6 +29,7 @@ export type CleanStats = {
   totalIn: number
   kept: number
   removedBads: number
+  removedDomains: number
   removedEmail: number
   removedCompany: number
 }
@@ -40,6 +41,7 @@ export type HistoryEntry = {
   totalIn: number
   kept: number
   removedBads: number
+  removedDomains: number
   removedEmail: number
   removedCompany: number
 }
@@ -47,6 +49,7 @@ export type HistoryEntry = {
 export type WizardStep =
   | 'upload'
   | 'mapping'
+  | 'domains'
   | 'bads'
   | 'email'
   | 'empresa'

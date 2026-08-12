@@ -30,7 +30,10 @@ function formatDate(iso: string) {
 
 function HistoryRow({ entry }: { entry: HistoryEntry }) {
   const removed =
-    entry.removedBads + entry.removedEmail + entry.removedCompany
+    entry.removedBads +
+    (entry.removedDomains ?? 0) +
+    entry.removedEmail +
+    entry.removedCompany
   return (
     <li className="log-row">
       <div>
@@ -72,7 +75,10 @@ export function HomePage({
     setImportError('')
     try {
       const imported = await importDraftFromFile(file)
-      onImportDraft(imported)
+      if (imported.warning) {
+        window.alert(imported.warning)
+      }
+      onImportDraft(imported.draft)
     } catch (err) {
       setImportError(
         err instanceof Error
@@ -161,6 +167,10 @@ export function HomePage({
           </>,
           <>
             Confirme o mapeamento das colunas (Email, Empresa, Identificador…).
+          </>,
+          <>
+            Escolha quais <strong>@domínios</strong> excluir (gmail, hotmail,
+            temporários…). Dá para desmarcar ou adicionar outros.
           </>,
           <>
             Confirme a remoção dos <strong>Bads</strong> e resolva os
