@@ -545,6 +545,17 @@ code {
   background: rgba(26, 79, 138, 0.06);
 }
 
+.btn-partial {
+  background: var(--keep-soft);
+  border-color: rgba(31, 122, 92, 0.35);
+  color: var(--keep);
+  font-weight: 700;
+}
+
+.btn-partial:hover {
+  background: #d8efe6;
+}
+
 .wizard-step {
   font-size: 0.85rem;
   font-weight: 700;

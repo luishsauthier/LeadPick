@@ -375,6 +375,16 @@ export function CleanWizard({
     downloadCsv(csv, `${base}-limpo.csv`)
   }
 
+  function exportPartialCsv() {
+    const csv = leadsToCsv(leads, headers)
+    const base = fileName.replace(/\.csv$/i, '') || 'leads'
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+    downloadCsv(csv, `${base}-parcial-${stamp}.csv`)
+    setSaveNote(
+      `Lista parcial baixada (${leads.length} leads) — espelha o estado atual da limpeza`,
+    )
+  }
+
   function handleFinishHome() {
     void clearDraft().then(() => onComplete())
   }
@@ -407,6 +417,8 @@ export function CleanWizard({
 
   const canGoBackDeck = undoStack.length > 0
   const showBackup = step !== 'upload' && Boolean(fileName)
+  const showPartialExport =
+    showBackup && step !== 'summary' && leads.length > 0
 
   const stepTip = useMemo(() => {
     switch (step) {
@@ -433,12 +445,12 @@ export function CleanWizard({
       case 'email':
         return {
           title: 'Passo 5 — E-mails duplicados',
-          text: 'Escolha qual lead manter (ou vários, com o toggle). Use “Baixar progresso” se for pausar.',
+          text: 'Escolha qual lead manter (ou vários, com o toggle). Pode baixar a lista parcial a qualquer momento ou o progresso .json para pausar.',
         }
       case 'empresa':
         return {
           title: 'Passo 6 — Empresas duplicadas',
-          text: 'Mesma lógica do e-mail: deixe só o lead que deve permanecer. Pode voltar à decisão anterior se errar.',
+          text: 'Mesma lógica do e-mail. Use “Baixar lista parcial” para pegar o CSV como está agora, sem terminar a limpeza.',
         }
       case 'summary':
         return {
@@ -467,6 +479,16 @@ export function CleanWizard({
               Baixar progresso
             </button>
           )}
+          {showPartialExport && (
+            <button
+              type="button"
+              className="btn btn-partial"
+              onClick={exportPartialCsv}
+              title="Baixa o CSV com os leads que restam agora, após as alterações feitas até aqui"
+            >
+              Baixar lista parcial ({leads.length})
+            </button>
+          )}
         </div>
         <div className="wizard-bar-meta">
           {saveNote && (
@@ -488,9 +510,9 @@ export function CleanWizard({
 
       {showBackup && (step === 'email' || step === 'empresa') && (
         <StepTip title="Dica: não perca o trabalho" tone="warn">
-          Vai pausar agora? Clique em <strong>Baixar progresso</strong> antes de
-          fechar o navegador. Depois use <strong>Continuar de arquivo</strong> na
-          home.
+          Vai pausar? Use <strong>Baixar progresso</strong> (.json para
+          continuar depois) e/ou <strong>Baixar lista parcial</strong> (CSV com
+          o que já ficou limpo até aqui).
         </StepTip>
       )}
 
